@@ -1,0 +1,731 @@
+// AlumniVerse Pro Database Schema
+// Comprehensive schema for next-generation alumni platform
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// CORE USER MANAGEMENT
+// ============================================
+
+model User {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  username    String?  @unique
+  firstName   String
+  lastName    String
+  role        UserRole @default(STUDENT)
+  status      UserStatus @default(PENDING)
+  profileImage String?
+  
+  // Institution relationship
+  institutionId String?
+  institution   Institution? @relation(fields: [institutionId], references: [id])
+  
+  // Profile relationships
+  alumniProfile  AlumniProfile?
+  studentProfile StudentProfile?
+  
+  // Activity tracking
+  lastActive DateTime @default(now())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  
+  // Relationships
+  sentMessages       Message[] @relation("MessageSender")
+  receivedMessages   Message[] @relation("MessageRecipient")
+  organizedEvents    Event[] @relation("EventOrganizer")
+  eventAttendances   EventAttendance[]
+  jobApplications    JobApplication[]
+  postedJobs         Job[] @relation("JobPoster")
+  achievements       Achievement[]
+  nftAchievements    NFTAchievement[]
+  gamificationProfile GamificationProfile?
+  analyticsData      AnalyticsData[]
+  
+  @@map("users")
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  INSTITUTION_ADMIN
+  ALUMNI
+  STUDENT
+}
+
+enum UserStatus {
+  ACTIVE
+  PENDING
+  SUSPENDED
+  INACTIVE
+}
+
+model Institution {
+  id              String  @id @default(cuid())
+  name            String  @unique
+  type            String
+  location        String
+  website         String?
+  logo            String?
+  establishedYear Int?
+  description     String?
+  
+  // Relationships
+  users           User[]
+  events          Event[]
+  departments     Department[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("institutions")
+}
+
+model Department {
+  id            String      @id @default(cuid())
+  name          String
+  code          String?
+  description   String?
+  
+  institutionId String
+  institution   Institution @relation(fields: [institutionId], references: [id])
+  
+  // Relationships
+  alumniProfiles  AlumniProfile[]
+  studentProfiles StudentProfile[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@unique([institutionId, name])
+  @@map("departments")
+}
+
+// ============================================
+// PROFILE MANAGEMENT
+// ============================================
+
+model AlumniProfile {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Academic Information
+  graduationYear  Int
+  graduationMonth Int
+  departmentId    String?
+  department      Department? @relation(fields: [departmentId], references: [id])
+  degreeType      String
+  major           String?
+  minor           String?
+  gpa             Float?
+  
+  // Professional Information
+  currentPosition String?
+  currentCompany  String?
+  industry        String?
+  workLocation    String?
+  yearsExperience Int?
+  
+  // Profile Content
+  bio             String?
+  headline        String?
+  
+  // Social Links
+  linkedinUrl     String?
+  twitterUrl      String?
+  githubUrl       String?
+  personalWebsite String?
+  
+  // Privacy & Preferences
+  profileVisibility ProfileVisibility @default(INSTITUTE)
+  allowMessages     Boolean @default(true)
+  allowJobOffers    Boolean @default(true)
+  isMentor          Boolean @default(false)
+  mentorCategories  String[]
+  
+  // Analytics & Metrics
+  profileCompleteness Float @default(0.0)
+  networkingScore     Float @default(0.0)
+  
+  // Relationships
+  skills         Skill[]
+  workExperiences WorkExperience[]
+  mentorships    Mentorship[] @relation("MentorProfile")
+  mentoredBy     Mentorship[] @relation("MenteeProfile")
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("alumni_profiles")
+}
+
+model StudentProfile {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Academic Information
+  currentYear         Int
+  departmentId        String?
+  department          Department? @relation(fields: [departmentId], references: [id])
+  degreeType          String
+  major               String?
+  expectedGraduation  Int
+  gpa                 Float?
+  
+  // Profile Content
+  bio                 String?
+  
+  // Career Interests
+  careerInterests     String[]
+  isSeekingInternship Boolean @default(false)
+  isSeekingMentorship Boolean @default(false)
+  
+  // Privileges & Restrictions
+  canViewAlumniProfiles Boolean @default(false)
+  canMessageAlumni      Boolean @default(false)
+  messageLimit          Int @default(5)
+  canViewContactInfo    Boolean @default(false)
+  canAttendEvents       Boolean @default(true)
+  
+  // Relationships
+  skills      Skill[]
+  projects    Project[]
+  mentorships Mentorship[] @relation("StudentMentorships")
+  privilegeRequests PrivilegeRequest[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("student_profiles")
+}
+
+enum ProfileVisibility {
+  PUBLIC
+  INSTITUTE
+  PRIVATE
+}
+
+// ============================================
+// SKILLS & EXPERIENCE
+// ============================================
+
+model Skill {
+  id           String      @id @default(cuid())
+  name         String
+  level        SkillLevel
+  verified     Boolean     @default(false)
+  endorsements Int         @default(0)
+  
+  // Relationships
+  alumniProfileId  String?
+  alumniProfile    AlumniProfile? @relation(fields: [alumniProfileId], references: [id])
+  studentProfileId String?
+  studentProfile   StudentProfile? @relation(fields: [studentProfileId], references: [id])
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("skills")
+}
+
+enum SkillLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  EXPERT
+}
+
+model WorkExperience {
+  id             String    @id @default(cuid())
+  companyName    String
+  position       String
+  startDate      DateTime
+  endDate        DateTime?
+  isCurrent      Boolean   @default(false)
+  description    String?
+  achievements   String[]
+  
+  alumniProfileId String
+  alumniProfile   AlumniProfile @relation(fields: [alumniProfileId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("work_experiences")
+}
+
+model Project {
+  id           String    @id @default(cuid())
+  title        String
+  description  String
+  technologies String[]
+  githubUrl    String?
+  liveUrl      String?
+  startDate    DateTime
+  endDate      DateTime?
+  isOngoing    Boolean   @default(false)
+  
+  studentProfileId String
+  studentProfile   StudentProfile @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("projects")
+}
+
+// ============================================
+// ACHIEVEMENTS & GAMIFICATION
+// ============================================
+
+model Achievement {
+  id          String          @id @default(cuid())
+  title       String
+  description String
+  type        AchievementType
+  points      Int             @default(0)
+  verified    Boolean         @default(false)
+  date        DateTime        @default(now())
+  
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("achievements")
+}
+
+enum AchievementType {
+  ACADEMIC
+  PROFESSIONAL
+  PERSONAL
+  PLATFORM
+}
+
+model NFTAchievement {
+  id              String     @id @default(cuid())
+  tokenId         String
+  contractAddress String
+  title           String
+  description     String
+  imageUrl        String
+  metadata        Json
+  rarity          NFTRarity
+  mintedAt        DateTime   @default(now())
+  
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@unique([contractAddress, tokenId])
+  @@map("nft_achievements")
+}
+
+enum NFTRarity {
+  COMMON
+  RARE
+  EPIC
+  LEGENDARY
+}
+
+model GamificationProfile {
+  id      String @id @default(cuid())
+  userId  String @unique
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  totalPoints          Int @default(0)
+  level               Int @default(1)
+  leaderboardPosition Int?
+  
+  // Streak tracking
+  loginStreak         Int @default(0)
+  networkingStreak    Int @default(0)
+  eventStreak         Int @default(0)
+  
+  // Badges
+  badges Badge[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("gamification_profiles")
+}
+
+model Badge {
+  id          String    @id @default(cuid())
+  name        String
+  description String
+  iconUrl     String
+  rarity      NFTRarity
+  unlockedAt  DateTime  @default(now())
+  nftTokenId  String?
+  
+  gamificationProfileId String
+  gamificationProfile   GamificationProfile @relation(fields: [gamificationProfileId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("badges")
+}
+
+// ============================================
+// EVENTS & NETWORKING
+// ============================================
+
+model Event {
+  id               String      @id @default(cuid())
+  title            String
+  description      String
+  type             EventType
+  date             DateTime
+  endDate          DateTime?
+  location         String?
+  virtualLink      String?
+  maxAttendees     Int?
+  isVirtual        Boolean     @default(false)
+  isPublic         Boolean     @default(true)
+  requiresApproval Boolean     @default(false)
+  tags             String[]
+  
+  // VR/AR Configuration
+  vrSpaceId        String?
+  vrSpaceConfig    Json?
+  
+  // Access Control
+  allowedRoles         UserRole[]
+  allowedInstitutions  String[]
+  
+  // Relationships
+  organizerId    String
+  organizer      User        @relation("EventOrganizer", fields: [organizerId], references: [id])
+  institutionId  String?
+  institution    Institution? @relation(fields: [institutionId], references: [id])
+  attendances    EventAttendance[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("events")
+}
+
+enum EventType {
+  NETWORKING
+  REUNION
+  WORKSHOP
+  SEMINAR
+  VIRTUAL
+  HYBRID
+  CAREER_FAIR
+  MENTORSHIP
+}
+
+model EventAttendance {
+  id       String            @id @default(cuid())
+  status   AttendanceStatus  @default(REGISTERED)
+  
+  eventId  String
+  event    Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId   String
+  user     User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  registeredAt DateTime @default(now())
+  attendedAt   DateTime?
+  
+  @@unique([eventId, userId])
+  @@map("event_attendances")
+}
+
+enum AttendanceStatus {
+  REGISTERED
+  ATTENDED
+  NO_SHOW
+  CANCELLED
+}
+
+// ============================================
+// MESSAGING & COMMUNICATION
+// ============================================
+
+model Message {
+  id          String        @id @default(cuid())
+  content     String
+  type        MessageType   @default(DIRECT)
+  status      MessageStatus @default(SENT)
+  sentAt      DateTime      @default(now())
+  readAt      DateTime?
+  
+  senderId    String
+  sender      User @relation("MessageSender", fields: [senderId], references: [id])
+  recipientId String
+  recipient   User @relation("MessageRecipient", fields: [recipientId], references: [id])
+  
+  // Attachments
+  attachments MessageAttachment[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("messages")
+}
+
+enum MessageType {
+  DIRECT
+  GROUP
+  ANNOUNCEMENT
+}
+
+enum MessageStatus {
+  SENT
+  DELIVERED
+  READ
+}
+
+model MessageAttachment {
+  id        String           @id @default(cuid())
+  type      AttachmentType
+  url       String
+  filename  String?
+  size      Int?
+  
+  messageId String
+  message   Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+  
+  @@map("message_attachments")
+}
+
+enum AttachmentType {
+  IMAGE
+  DOCUMENT
+  LINK
+  VIDEO
+}
+
+// ============================================
+// JOB BOARD & CAREERS
+// ============================================
+
+model Job {
+  id             String        @id @default(cuid())
+  title          String
+  company        String
+  location       String
+  type           JobType
+  description    String
+  requirements   String[]
+  skillsRequired String[]
+  experienceLevel ExperienceLevel
+  
+  // Salary information
+  salaryMin      Int?
+  salaryMax      Int?
+  salaryCurrency String?
+  
+  isActive    Boolean   @default(true)
+  expiresAt   DateTime?
+  tags        String[]
+  
+  postedById  String
+  postedBy    User @relation("JobPoster", fields: [postedById], references: [id])
+  
+  applications JobApplication[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("jobs")
+}
+
+enum JobType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  INTERNSHIP
+  REMOTE
+  HYBRID
+}
+
+enum ExperienceLevel {
+  ENTRY
+  MID
+  SENIOR
+  EXECUTIVE
+}
+
+model JobApplication {
+  id           String            @id @default(cuid())
+  status       ApplicationStatus @default(PENDING)
+  coverLetter  String?
+  resumeUrl    String?
+  aiMatchScore Float?
+  
+  jobId       String
+  job         Job  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  applicantId String
+  applicant   User @relation(fields: [applicantId], references: [id])
+  
+  appliedAt DateTime @default(now())
+  
+  @@unique([jobId, applicantId])
+  @@map("job_applications")
+}
+
+enum ApplicationStatus {
+  PENDING
+  REVIEWING
+  ACCEPTED
+  REJECTED
+}
+
+// ============================================
+// MENTORSHIP SYSTEM
+// ============================================
+
+model Mentorship {
+  id          String           @id @default(cuid())
+  status      MentorshipStatus @default(PENDING)
+  startDate   DateTime?
+  endDate     DateTime?
+  goals       String[]
+  notes       String?
+  
+  mentorId    String
+  mentor      AlumniProfile @relation("MentorProfile", fields: [mentorId], references: [id])
+  menteeId    String?
+  mentee      AlumniProfile? @relation("MenteeProfile", fields: [menteeId], references: [id])
+  studentId   String?
+  student     StudentProfile? @relation("StudentMentorships", fields: [studentId], references: [id])
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("mentorships")
+}
+
+enum MentorshipStatus {
+  PENDING
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+// ============================================
+// PRIVILEGE SYSTEM
+// ============================================
+
+model PrivilegeRequest {
+  id          String              @id @default(cuid())
+  type        PrivilegeRequestType
+  reason      String
+  status      RequestStatus       @default(PENDING)
+  reviewedBy  String?
+  reviewedAt  DateTime?
+  
+  studentId String
+  student   StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  
+  requestedAt DateTime @default(now())
+  
+  @@map("privilege_requests")
+}
+
+enum PrivilegeRequestType {
+  MESSAGE_INCREASE
+  CONTACT_ACCESS
+  EVENT_ACCESS
+  PROFILE_ACCESS
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// ============================================
+// ANALYTICS & INSIGHTS
+// ============================================
+
+model AnalyticsData {
+  id         String   @id @default(cuid())
+  event      String
+  properties Json
+  timestamp  DateTime @default(now())
+  
+  userId String?
+  user   User?  @relation(fields: [userId], references: [id])
+  
+  @@map("analytics_data")
+}
+
+// ============================================
+// AI RECOMMENDATIONS
+// ============================================
+
+model AIRecommendation {
+  id         String              @id @default(cuid())
+  type       RecommendationType
+  targetId   String
+  confidence Float
+  reason     String
+  metadata   Json?
+  isActive   Boolean @default(true)
+  
+  userId String
+  
+  createdAt DateTime @default(now())
+  expiresAt DateTime?
+  
+  @@map("ai_recommendations")
+}
+
+enum RecommendationType {
+  ALUMNI_MATCH
+  EVENT
+  JOB
+  SKILL
+  CONNECTION
+  MENTORSHIP
+}
+
+// ============================================
+// NOTIFICATIONS
+// ============================================
+
+model Notification {
+  id       String           @id @default(cuid())
+  title    String
+  message  String
+  type     NotificationType
+  read     Boolean          @default(false)
+  
+  userId String
+  
+  createdAt DateTime @default(now())
+  readAt    DateTime?
+  
+  @@map("notifications")
+}
+
+enum NotificationType {
+  MESSAGE
+  EVENT_INVITATION
+  JOB_MATCH
+  ACHIEVEMENT
+  CONNECTION_REQUEST
+  MENTORSHIP_REQUEST
+  SYSTEM
+}
