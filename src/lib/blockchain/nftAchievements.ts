@@ -1,4 +1,5 @@
 // Blockchain NFT Achievement System
+import React from 'react';
 import Web3 from 'web3';
 import { NFTAchievement, Achievement, User } from '@/types';
 
@@ -64,25 +65,39 @@ interface AchievementMetadata {
 }
 
 export class NFTAchievementSystem {
-  private web3: Web3;
+  private web3!: Web3;
   private contract: any;
   private contractAddress: string;
   private initialized: boolean = false;
 
   constructor() {
     // Initialize with Polygon testnet
-    this.contractAddress = process.env.NEXT_PUBLIC_ACHIEVEMENT_CONTRACT_ADDRESS || '0x...'; // Deploy contract first
-    this.initializeWeb3();
+    this.contractAddress = process.env.NEXT_PUBLIC_ACHIEVEMENT_CONTRACT_ADDRESS || '';
+    // Only initialize Web3 when actually needed, not during SSR
+    if (typeof window !== 'undefined' && this.contractAddress) {
+      this.initializeWeb3();
+    }
   }
 
   private async initializeWeb3() {
     try {
+      // Don't initialize if no contract address is provided
+      if (!this.contractAddress) {
+        console.warn('No contract address provided for NFT Achievement System');
+        return;
+      }
+
       if (typeof window !== 'undefined' && window.ethereum) {
         this.web3 = new Web3(window.ethereum);
         await this.switchToPolygon();
       } else {
         // Fallback to Infura/Alchemy for server-side operations
-        this.web3 = new Web3(`https://polygon-mumbai.infura.io/v3/${process.env.NEXT_PUBLIC_WEB3_INFURA_ID}`);
+        const infuraId = process.env.NEXT_PUBLIC_WEB3_INFURA_ID;
+        if (!infuraId) {
+          console.warn('No Infura ID provided for Web3 initialization');
+          return;
+        }
+        this.web3 = new Web3(`https://polygon-mumbai.infura.io/v3/${infuraId}`);
       }
       
       this.contract = new this.web3.eth.Contract(ACHIEVEMENT_CONTRACT_ABI, this.contractAddress);

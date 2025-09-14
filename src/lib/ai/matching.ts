@@ -66,7 +66,7 @@ export class IntelligentMatchingEngine {
    * Generate semantic vector representation of a profile using OpenAI embeddings
    */
   private async generateProfileVector(profile: AlumniProfile | StudentProfile): Promise<number[]> {
-    const cacheKey = `${profile.id}_${profile.lastActive || Date.now()}`;
+    const cacheKey = `${profile.id}_${'lastActive' in profile ? profile.lastActive : Date.now()}`;
     
     if (this.vectorCache.has(cacheKey)) {
       return this.vectorCache.get(cacheKey)!;
@@ -261,7 +261,7 @@ export class IntelligentMatchingEngine {
   private calculateSkillComplementarity(
     userProfile: AlumniProfile | StudentProfile,
     candidateProfile: AlumniProfile
-  ): Promise<number> {
+  ): number {
     const userSkills = new Set(userProfile.skills.map(s => s.name.toLowerCase()));
     const candidateSkills = new Set(candidateProfile.skills.map(s => s.name.toLowerCase()));
     
@@ -282,7 +282,7 @@ export class IntelligentMatchingEngine {
   private calculateGeographicScore(
     userProfile: AlumniProfile | StudentProfile,
     candidateProfile: AlumniProfile
-  ): Promise<number> {
+  ): number {
     // Simple location matching - in a real implementation, you'd use geocoding
     const userLocation = this.extractLocation(userProfile);
     const candidateLocation = candidateProfile.workLocation || candidateProfile.user.institution?.location;
@@ -313,7 +313,7 @@ export class IntelligentMatchingEngine {
   private calculateMentorshipFit(
     context: MatchingContext,
     candidateProfile: AlumniProfile
-  ): Promise<number> {
+  ): number {
     if (context.context !== 'mentorship') return 0.5;
     if (!candidateProfile.isMentor) return 0.1;
     

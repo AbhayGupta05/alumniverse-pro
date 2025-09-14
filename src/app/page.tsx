@@ -15,7 +15,7 @@ import {
   TrendingUp,
   Award,
   Gamepad2,
-  VrIcon,
+  Headphones,
   BarChart3,
   Zap,
   Brain,
@@ -66,7 +66,7 @@ const features = [
     color: 'from-purple-500 to-pink-500'
   },
   {
-    icon: VrIcon,
+    icon: Headphones,
     title: 'VR/AR Networking',
     description: 'Immersive virtual networking events using A-Frame and spatial audio',
     color: 'from-orange-500 to-red-500'
@@ -105,25 +105,33 @@ export default function Home() {
           <div className="absolute inset-0 bg-black/20"></div>
           {/* Animated particles */}
           <div className="absolute inset-0">
-            {[...Array(50)].map((_, i) => (
-              <motion.div
-                key={i}
-                className="absolute w-1 h-1 bg-white/30 rounded-full"
-                initial={{
-                  x: Math.random() * window.innerWidth,
-                  y: Math.random() * window.innerHeight,
-                }}
-                animate={{
-                  x: Math.random() * window.innerWidth,
-                  y: Math.random() * window.innerHeight,
-                }}
-                transition={{
-                  duration: Math.random() * 20 + 10,
-                  repeat: Infinity,
-                  repeatType: "reverse"
-                }}
-              />
-            ))}
+            {[...Array(50)].map((_, i) => {
+              // Use default dimensions for SSR, will be correct on hydration
+              const defaultWidth = 1920;
+              const defaultHeight = 1080;
+              const width = typeof window !== 'undefined' ? window.innerWidth : defaultWidth;
+              const height = typeof window !== 'undefined' ? window.innerHeight : defaultHeight;
+              
+              return (
+                <motion.div
+                  key={i}
+                  className="absolute w-1 h-1 bg-white/30 rounded-full"
+                  initial={{
+                    x: Math.random() * width,
+                    y: Math.random() * height,
+                  }}
+                  animate={{
+                    x: Math.random() * width,
+                    y: Math.random() * height,
+                  }}
+                  transition={{
+                    duration: Math.random() * 20 + 10,
+                    repeat: Infinity,
+                    repeatType: "reverse"
+                  }}
+                />
+              );
+            })}
           </div>
         </div>
 
@@ -253,7 +261,7 @@ export default function Home() {
                 onClick={() => setActiveDemo('vr')}
                 className="rounded-none"
               >
-                <VrIcon className="h-4 w-4 mr-2" />
+                <Headphones className="h-4 w-4 mr-2" />
                 VR Networking
               </Button>
             </div>
@@ -295,7 +303,20 @@ export default function Home() {
               animate={{ opacity: 1 }}
               transition={{ duration: 0.5 }}
             >
-              <VRNetworking />
+              <VRNetworking 
+                event={{
+                  id: 'demo-event',
+                  title: 'VR Networking Demo',
+                  description: 'Experience immersive VR networking',
+                  startDateTime: new Date(),
+                  endDateTime: new Date(),
+                  maxParticipants: 50
+                } as any}
+                user={mockUser}
+                participants={[mockUser]}
+                onJoinEvent={() => {}}
+                onLeaveEvent={() => {}}
+              />
             </motion.div>
           )}
         </div>

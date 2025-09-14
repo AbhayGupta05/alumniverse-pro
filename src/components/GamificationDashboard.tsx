@@ -311,7 +311,7 @@ export default function GamificationDashboard({
         id: 'recent-1',
         title: 'Social Butterfly',
         description: 'Made 10 new connections this week',
-        type: 'networking',
+        type: 'platform',
         date: new Date(),
         verified: true,
         points: 150
@@ -320,7 +320,7 @@ export default function GamificationDashboard({
         id: 'recent-2',
         title: 'Event Enthusiast',
         description: 'Attended 3 events in one month',
-        type: 'events',
+        type: 'professional',
         date: new Date(),
         verified: true,
         points: 200

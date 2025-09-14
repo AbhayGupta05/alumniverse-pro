@@ -179,7 +179,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Process real analytics for basic metrics
-    const eventCounts = realAnalytics.reduce((acc, event) => {
+    const eventCounts = realAnalytics.reduce((acc: Record<string, number>, event: { event: string; [key: string]: any }) => {
       acc[event.event] = (acc[event.event] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);

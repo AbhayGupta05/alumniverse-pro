@@ -177,12 +177,13 @@ export async function POST(request: NextRequest) {
         .estimateGas({ from: account.address });
 
       // Send transaction
+      const gasPrice = await web3.eth.getGasPrice();
       const receipt = await contract.methods
         .mintAchievement(recipientAddress, tokenURI)
         .send({
           from: account.address,
-          gas: gasEstimate,
-          gasPrice: await web3.eth.getGasPrice(),
+          gas: gasEstimate.toString(),
+          gasPrice: gasPrice.toString(),
         });
 
       transactionHash = receipt.transactionHash;
@@ -299,10 +300,10 @@ export async function GET(request: NextRequest) {
         achievements: nftAchievements,
         totalCount: nftAchievements.length,
         rarityBreakdown: {
-          common: nftAchievements.filter(n => n.rarity === 'COMMON').length,
-          rare: nftAchievements.filter(n => n.rarity === 'RARE').length,
-          epic: nftAchievements.filter(n => n.rarity === 'EPIC').length,
-          legendary: nftAchievements.filter(n => n.rarity === 'LEGENDARY').length,
+          common: nftAchievements.filter((n: { rarity: string }) => n.rarity === 'COMMON').length,
+          rare: nftAchievements.filter((n: { rarity: string }) => n.rarity === 'RARE').length,
+          epic: nftAchievements.filter((n: { rarity: string }) => n.rarity === 'EPIC').length,
+          legendary: nftAchievements.filter((n: { rarity: string }) => n.rarity === 'LEGENDARY').length,
         }
       }
     });

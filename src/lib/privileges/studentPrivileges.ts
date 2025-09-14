@@ -1,4 +1,5 @@
 // Student Privilege System - Advanced Access Control
+import React from 'react';
 import { StudentProfile, StudentPrivileges, PrivilegeRequest, AlumniProfile, User } from '@/types';
 
 export class StudentPrivilegeManager {
@@ -22,7 +23,7 @@ export class StudentPrivilegeManager {
 
   private readonly TIER_UPGRADES = {
     'academic_performance': {
-      condition: (student: StudentProfile) => (student.gpa || 0) >= 3.5,
+      condition: (student: StudentProfile, _?: number) => (student.gpa || 0) >= 3.5,
       benefits: {
         dailyMessageLimit: 10,
         canViewSalaryInfo: true,
@@ -31,7 +32,7 @@ export class StudentPrivilegeManager {
       badge: 'Academic Excellence'
     },
     'engagement_level': {
-      condition: (student: StudentProfile, engagementScore: number) => engagementScore >= 80,
+      condition: (student: StudentProfile, engagementScore: number = 0) => engagementScore >= 80,
       benefits: {
         dailyMessageLimit: 15,
         canViewContactInfo: true,
@@ -40,7 +41,7 @@ export class StudentPrivilegeManager {
       badge: 'Highly Engaged'
     },
     'mentorship_active': {
-      condition: (student: StudentProfile) => student.isSeekingMentorship,
+      condition: (student: StudentProfile, _?: number) => student.isSeekingMentorship,
       benefits: {
         canAccessMentorship: true,
         dailyMessageLimit: 8,
@@ -49,7 +50,7 @@ export class StudentPrivilegeManager {
       badge: 'Mentorship Seeker'
     },
     'project_showcase': {
-      condition: (student: StudentProfile) => student.projects.length >= 3,
+      condition: (student: StudentProfile, _?: number) => student.projects.length >= 3,
       benefits: {
         canViewSalaryInfo: true,
         dailyMessageLimit: 12,
@@ -76,7 +77,7 @@ export class StudentPrivilegeManager {
       if (tierName === 'engagement_level' && engagementData) {
         conditionMet = tier.condition(student, engagementData.score);
       } else {
-        conditionMet = tier.condition(student);
+        conditionMet = tier.condition(student, undefined);
       }
 
       if (conditionMet) {
@@ -302,7 +303,7 @@ export class StudentPrivilegeManager {
       }
 
       // Add student-specific interaction metadata
-      filtered.studentInteractionData = {
+      (filtered as any).studentInteractionData = {
         canMessage: privileges.canSendMessages,
         canViewFullProfile: privileges.canViewAlumniProfiles,
         canViewContactInfo: privileges.canViewContactInfo,
@@ -321,7 +322,7 @@ export class StudentPrivilegeManager {
     const student = await this.getStudentProfile(studentId);
     const currentPrivileges = await this.calculatePrivileges(student);
     
-    const progressData = {
+    const progressData: any = {
       currentLevel: this.calculatePrivilegeLevel(currentPrivileges),
       nextLevel: this.getNextPrivilegeLevel(currentPrivileges),
       progress: [],
@@ -375,7 +376,7 @@ export class StudentPrivilegeManager {
   private getNextPrivilegeLevel(privileges: StudentPrivileges): any {
     const currentLevel = this.calculatePrivilegeLevel(privileges);
     
-    const levelBenefits = {
+    const levelBenefits: { [key: number]: string } = {
       2: 'Contact information access',
       3: 'Salary insights and increased messaging',
       4: 'Premium event access',
@@ -394,7 +395,7 @@ export class StudentPrivilegeManager {
     return Math.random() * 100;
   }
 
-  private async getStudentProfile(studentId: string): Promise<StudentProfile> {
+  async getStudentProfile(studentId: string): Promise<StudentProfile> {
     // Mock implementation - would fetch from database
     return {
       id: 'student_1',

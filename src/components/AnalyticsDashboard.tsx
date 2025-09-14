@@ -82,10 +82,10 @@ const NetworkVisualization = ({ data, width = 400, height = 300 }: {
       .style('fill', (d, i) => i === 0 ? '#3b82f6' : '#8b5cf6')
       .style('stroke', '#fff')
       .style('stroke-width', 2)
-      .call(d3.drag()
+      .call(d3.drag<SVGCircleElement, any>()
         .on('start', dragstarted)
         .on('drag', dragged)
-        .on('end', dragended));
+        .on('end', dragended) as any);
 
     const label = svg.append('g')
       .selectAll('text')
@@ -225,7 +225,7 @@ const TimeSeriesChart = ({ data, width = 400, height = 200 }: {
     // Add axes
     g.append('g')
       .attr('transform', `translate(0,${innerHeight})`)
-      .call(d3.axisBottom(xScale).tickFormat(d3.timeFormat('%m/%d')));
+      .call(d3.axisBottom(xScale).tickFormat(d3.timeFormat('%m/%d') as any) as any);
 
     g.append('g')
       .call(d3.axisLeft(yScale));

@@ -174,7 +174,7 @@ export class AlumniMatchingEngine {
     let score = 0;
     
     // Compare departments/majors
-    const seekerDept = 'department' in seeker ? seeker.department : seeker.department;
+    const seekerDept = 'department' in seeker ? seeker.department : null;
     if (seekerDept === alumni.department) {
       score += 0.4;
     }
@@ -278,7 +278,7 @@ export class AlumniMatchingEngine {
     
     // Check mentor categories alignment
     if (alumni.mentorCategories && alumni.mentorCategories.length > 0) {
-      const seekerInterests = 'careerInterests' in seeker ? seeker.careerInterests : [seeker.department];
+      const seekerInterests = 'careerInterests' in seeker ? seeker.careerInterests : ('department' in seeker ? [seeker.department] : []);
       const alignment = alumni.mentorCategories.some(category =>
         seekerInterests.some(interest => 
           category.toLowerCase().includes(interest.toLowerCase()) ||
@@ -308,7 +308,7 @@ export class AlumniMatchingEngine {
       const prompt = `Analyze this professional match and provide insights:
 
 Seeker Profile:
-- Department: ${'department' in seeker ? seeker.department : seeker.department}
+|- Department: ${'department' in seeker ? seeker.department : 'N/A'}
 - Skills: ${seeker.skills.map(s => s.name).join(', ')}
 - ${('careerInterests' in seeker) ? `Career Interests: ${seeker.careerInterests.join(', ')}` : ''}
 
@@ -343,7 +343,7 @@ Provide a 2-3 sentence insight about why this is a good match and what value the
    */
   private createProfileText(profile: StudentProfile | AlumniProfile): string {
     const parts = [
-      'department' in profile ? profile.department : profile.department,
+      'department' in profile ? profile.department : 'N/A',
       profile.skills.map(s => s.name).join(' '),
     ];
     
@@ -377,7 +377,7 @@ Provide a 2-3 sentence insight about why this is a good match and what value the
       'marketing': ['google analytics', 'adobe creative suite', 'social media', 'seo'],
     };
     
-    const dept = ('department' in profile ? profile.department : profile.department).toLowerCase();
+    const dept = ('department' in profile ? profile.department : 'general').toLowerCase();
     return careerMap[dept] || ['communication', 'leadership', 'problem solving'];
   }
 
